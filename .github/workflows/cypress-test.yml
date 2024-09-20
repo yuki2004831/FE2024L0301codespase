@@ -1,0 +1,44 @@
+name: e2e_test
+on: [push]
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v2
+      - name: install japanese font
+        run: sudo apt-get install -y fonts-noto-cjk
+      - name: install cypress report module
+        # run: npm install --save-dev mochawesome mochawesome-merge mochawesome-report-generator
+        run: npm install --save-dev http-server mochawesome mochawesome-merge mochawesome-report-generator
+        # working-directory: e2e
+      # cypress test run
+      - name: cypress run
+        uses: cypress-io/github-action@v3
+        with:
+          # working-directory: e2e
+          browser: chrome
+          headless: true
+          start: npm start
+          wait-on: 'http://localhost:3333/'
+          # wait for 2 minutes for the server to respond
+          wait-on-timeout: 120
+        # cypress debug
+        # env:
+        #   DEBUG: 'cypress:*'
+      - name: cypress report create html
+        if: always()
+        # working-directory: e2e
+        run: |
+          npx mochawesome-merge "cypress/results/mochawesome*.json" > cypress/results/merge-report.json
+          npx marge cypress/results/merge-report.json -o cypress/results
+      # upload artifact for debug
+      - name: upload-mochawesome-report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mochawesome-report
+          path: |
+            # ./e2e/cypress/results
+            ./cypress/results
+
